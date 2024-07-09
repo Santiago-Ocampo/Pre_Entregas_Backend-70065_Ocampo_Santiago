@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "products": [
+      {
+        "product": 1,
+        "quantity": 5
+      }
+    ],
+    "createdAt": "2024-07-09T13:31:14.675Z",
+    "updatedAt": "2024-07-09T13:32:22.816Z",
+    "status": "active"
+  }
+]
