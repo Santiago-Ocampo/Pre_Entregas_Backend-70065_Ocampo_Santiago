@@ -94,17 +94,51 @@ Carrito y funcionalidades:
 
 ![Carrito y funcionalidades segun la consigna](./assets/Carrito-funcionalidades.gif)
 
+## Uso de WebSocket y Handlebars de la API 
+
+En esta parte del proyecto y siguiendo la consigna de la preentrega dos se implemento Handlebars y websocket. 
+
+Se puede apreciar que: 
+
+La vista del “home.handlebars” la cual contenga una lista de todos los productos agregados hasta el momento y mediante “realTimeProducts.handlebars”, la cual vivirá en el endpoint.
+
+Al trabajar con websockets, cada vez que creemos un producto nuevo, o bien cada vez que eliminemos un producto, se debe actualizar automáticamente en dicha vista la lista.
+
+![funcionalidades segun la consigna, websockets y el realtimeproducts](./assets/funcionalidad%20websockets%20-%20realTimeProducts.gif)
+
+
+![funcionalidades del realtimeproducts, junto con postman para poder agregar productos como tambien eliminarlos en el localhost]
+
+![funcionalidades del realtimeproducts-postman](./assets/funcionalidad-%20realtimeproducts-postman-con-el-localhost.gif)
+
 
 # Estructura del proyecto
 ````
 mi proyecto/MI API
 ├── src/
-│   ├── routes/
-│   │     ├── Carts.js
-│   │     └── Products.js
 │   ├── data/
 │   │     ├── carts.json
 │   │     └── products.json
+|   |
+|   ├── public/
+│   │     ├── css/
+│   │     |    ├── home.css
+│   │     |    └── realtime.css
+|   |     |
+│   │     |── js/
+│   │          ├── index.js
+|   |
+|   ├── routes/
+│   │     ├── Carts.js
+│   │     └── Products.js
+|   |     └── views.router.js
+|   |
+|   ├── views/
+│   │     ├── layouts/
+│   │     |       ├── main.handlebars
+│   │     ├── home.handlebars
+│   │     └── realTimeProducts.handlebars
+|   |
 │   └── app.js
 ├── assets/
 │     ├── carts.json

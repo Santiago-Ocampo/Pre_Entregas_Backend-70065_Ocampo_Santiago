@@ -1,0 +1,7 @@
+<link rel="stylesheet" href="/css/home.css">
+<h1>Productos</h1>
+<ul id="product-list">
+  {{#each products}}
+  <li>{{this.title}} - {{this.price}} - {{this.description}} - {{this.stock}} - {{this.category}}</li>
+  {{/each}}
+</ul>

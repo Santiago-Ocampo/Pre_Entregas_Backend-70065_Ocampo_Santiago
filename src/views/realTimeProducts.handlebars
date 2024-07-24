@@ -1,0 +1,77 @@
+<link rel="stylesheet" href="/css/realtime.css">
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<h1>Productos en Tiempo Real</h1>
+
+<h1>Agregar Productos</h1>
+<form id="product-form">
+    <input type="text" id="title" placeholder="Título del producto" required>
+    <input type="number" id="price" placeholder="Precio del producto" required>
+    <input type="text" id="description" placeholder="Descripción del producto" required>
+    <input type="number" id="stock" placeholder="Stock del producto" required>
+    <input type="text" id="category" placeholder="Categoría del producto" required>
+    <button type="submit">Agregar Producto</button>
+</form>
+
+<h1>Productos</h1>
+<ul id="product-list">
+    {{#each products}}
+    <li data-id="{{this.id}}">
+        {{this.title}} - {{this.price}} - {{this.description}} - {{this.stock}} - {{this.category}}
+        <button class="delete-btn" data-id="{{this.id}}">Eliminar</button>
+    </li>
+    {{/each}}
+</ul>
+
+
+<script>
+
+    const socket = io()
+
+    // Actualizar la lista de productos
+    socket.on('update-products', (products) => {
+        const productList = document.getElementById('product-list')
+        productList.innerHTML = ''
+        products.forEach(product => {
+            const li = document.createElement('li')
+            li.setAttribute('data-id', product.id)
+            li.innerHTML = `${product.title} - ${product.price} - ${product.description} - ${product.stock} - ${product.category} <button class="delete-btn" data-id="${product.id}">Eliminar</button>`;
+            productList.appendChild(li)
+        })
+
+        // Agregar eventos de eliminación a los nuevos botones
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const productId = button.getAttribute('data-id')
+                console.log(`Eliminar producto con ID: ${productId}`)
+                socket.emit('delete-product', productId)
+            })
+        })
+    })
+
+    // Manejar la adición de un nuevo producto
+    document.getElementById('product-form').addEventListener('submit', (e) => {
+        e.preventDefault()
+        const title = document.getElementById('title').value
+        const price = document.getElementById('price').value
+        const description = document.getElementById('description').value
+        const stock = document.getElementById('stock').value
+        const category = document.getElementById('category').value
+
+        // Generar un ID único para el nuevo producto
+        const productId = Date.now().toString()
+
+        socket.emit('new-product', { id: productId, title, price, description, stock, category })
+        Swal.fire('Producto agregado', '', 'success')
+
+        // Limpiar el formulario
+        document.getElementById('product-form').reset();
+    })
+
+    // Mostrar alerta de eliminación exitosa
+    socket.on('delete-success', () => {
+        Swal.fire('Producto eliminado', '', 'success')
+    })
+
+</script>
