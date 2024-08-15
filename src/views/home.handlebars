@@ -1,7 +1,98 @@
+<title>Lista de Productos y Carritos</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="/css/home.css">
-<h1>Productos</h1>
-<ul id="product-list">
-  {{#each products}}
-  <li>{{this.title}} - {{this.price}} - {{this.description}} - {{this.stock}} - {{this.category}}</li>
-  {{/each}}
-</ul>
+
+<title> Productos y Carritos </title>
+
+<div class="container mt-4">
+    <h1>Productos Disponibles</h1>
+    <div class="row">
+        {{#each products}}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <img class="card-img-top" src="{{this.thumbnail}}" alt="{{this.title}}">
+                <div class="card-body">
+                    <h5 class="card-title">{{this.title}}</h5>
+                    <p class="card-text">{{this.description}}</p>
+                    <p class="card-text"><strong>Precio:</strong> ${{this.price}}</p>
+                    <a href="/products/{{this._id}}" class="btn btn-primary">Ver detalles</a>
+                    <form action="/api/products/{{this._id}}/add-to-cart" method="POST" class="mt-2">
+                        <input type="number" name="quantity" value="1" min="1" class="form-control mb-2" />
+                        <button type="submit" class="btn btn-success">Agregar al carrito</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {{/each}}
+    </div>
+
+    <!-- Paginación -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {{#if hasPrevPage}}
+            <li class="page-item">
+                <a class="page-link" href="{{prevLink}}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {{/if}}
+
+            <li class="page-item active">
+                <span class="page-link">{{page}}</span>
+            </li>
+
+            {{#if hasNextPage}}
+            <li class="page-item">
+                <a class="page-link" href="{{nextLink}}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {{/if}}
+        </ul>
+    </nav>
+</div>
+
+<script>
+
+    async function addToCart(productId) {
+        try {
+            let cartId = document.getElementById('cartList')?.getAttribute('data-cart-id');
+
+            if (!cartId) {
+                // Crear un carrito si no existe
+                const createCartResponse = await fetch('/api/carts', { method: 'POST' });
+                const cart = await createCartResponse.json();
+
+                if (createCartResponse.ok) {
+                    cartId = cart._id; // Obtener el ID del carrito recién creado
+                    document.getElementById('cartList')?.setAttribute('data-cart-id', cartId);
+                } else {
+                    alert(`Error al crear el carrito: ${cart.message}`);
+                    return;
+                }
+
+                const cart = await createCartResponse.json();
+                cartId = cart._id;
+                document.getElementById('cartList').setAttribute('data-cart-id', cartId);
+            }
+
+            const response = await fetch(`/api/carts/add/${productId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cartId, quantity: 1 })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert('Producto agregado al carrito');
+                // Aquí puedes actualizar la UI, recargar la lista de carritos, etc.
+            } else {
+                alert(`Error: ${result.message}`);
+            }
+        } catch (error) {
+            alert('Hubo un error al agregar el producto al carrito');
+            console.error(error);
+        }
+    }
+
+</script>

@@ -2,76 +2,244 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<h1>Productos en Tiempo Real</h1>
+<title> Productos y Carritos en Tiempo Real </title>
 
-<h1>Agregar Productos</h1>
-<form id="product-form">
-    <input type="text" id="title" placeholder="Título del producto" required>
-    <input type="number" id="price" placeholder="Precio del producto" required>
-    <input type="text" id="description" placeholder="Descripción del producto" required>
-    <input type="number" id="stock" placeholder="Stock del producto" required>
-    <input type="text" id="category" placeholder="Categoría del producto" required>
-    <button type="submit">Agregar Producto</button>
-</form>
+<div class="container">
+    <h1> Gestión de Productos y Carritos en tiempo Real </h1>
 
-<h1>Productos</h1>
-<ul id="product-list">
-    {{#each products}}
-    <li data-id="{{this.id}}">
-        {{this.title}} - {{this.price}} - {{this.description}} - {{this.stock}} - {{this.category}}
-        <button class="delete-btn" data-id="{{this.id}}">Eliminar</button>
-    </li>
-    {{/each}}
-</ul>
+    <!-- Formulario para agregar productos -->
+    <form id="product-form">
+        <input type="text" id="title" placeholder="Título del producto" required>
+        <input type="number" id="price" placeholder="Precio del producto" required>
+        <input type="text" id="description" placeholder="Descripción del producto" required>
+        <input type="number" id="stock" placeholder="Stock del producto" required>
+        <input type="text" id="category" placeholder="Categoría del producto" required>
+        <button type="submit">Agregar Producto</button>
+    </form>
 
+    <h2>Lista de Productos</h2>
+    <ul id="productList">
+        {{#each products}}
+        <li data-id="{{this._id}}">
+            {{this.title}} - {{this.price}} - {{this.description}} - {{this.stock}} - {{this.category}}
+            <div class="quantity-control">
+                <button class="decrease-quantity" data-id="{{this._id}}">-</button>
+                <input type="number" min="1" value="1" class="product-quantity" data-id="{{this._id}}">
+                <button class="increase-quantity" data-id="{{this._id}}">+</button>
+            </div>
+            <button class="delete-btn" data-id="{{this._id}}">Eliminar</button>
+            <button class="add-to-cart-btn" data-id="{{this._id}}">Agregar al Carrito</button>
+        </li>
+        {{/each}}
+    </ul>
+
+    <h2>Carrito</h2>
+    <ul id="cartList" data-cart-id="{{cart._id}}">
+        {{#if cart.products.length}}
+        {{#each cart.products}}
+        <li>
+            <h3>{{this.product.title}} (x{{this.quantity}})</h3>
+            <button class="remove-from-cart-btn" data-id="{{this.product._id}}">Eliminar</button>
+        </li>
+        {{/each}}
+        {{else}}
+        <li>El carrito está vacío.</li>
+        {{/if}}
+    </ul>
+</div>
 
 <script>
 
-    const socket = io()
 
-    // Actualizar la lista de productos
-    socket.on('update-products', (products) => {
-        const productList = document.getElementById('product-list')
-        productList.innerHTML = ''
-        products.forEach(product => {
-            const li = document.createElement('li')
-            li.setAttribute('data-id', product.id)
-            li.innerHTML = `${product.title} - ${product.price} - ${product.description} - ${product.stock} - ${product.category} <button class="delete-btn" data-id="${product.id}">Eliminar</button>`;
-            productList.appendChild(li)
-        })
+    document.addEventListener('DOMContentLoaded', () => {
+        const socket = io();
 
-        // Agregar eventos de eliminación a los nuevos botones
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                const productId = button.getAttribute('data-id')
-                console.log(`Eliminar producto con ID: ${productId}`)
-                socket.emit('delete-product', productId)
-            })
-        })
-    })
 
-    // Manejar la adición de un nuevo producto
-    document.getElementById('product-form').addEventListener('submit', (e) => {
-        e.preventDefault()
-        const title = document.getElementById('title').value
-        const price = document.getElementById('price').value
-        const description = document.getElementById('description').value
-        const stock = document.getElementById('stock').value
-        const category = document.getElementById('category').value
+        // Evento para manejar el envío del formulario de nuevo producto
+        const productForm = document.getElementById('product-form');
+        if (productForm) {
+            productForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const title = document.getElementById('title').value;
+                const price = document.getElementById('price').value;
+                const description = document.getElementById('description').value;
+                const stock = document.getElementById('stock').value;
+                const category = document.getElementById('category').value;
+                socket.emit('new-product', { title, price, description, stock, category });
+            });
+        }
 
-        // Generar un ID único para el nuevo producto
-        const productId = Date.now().toString()
+        //Eliminacion de carrito
+        const clearCartBtn = document.getElementById('clear-cart-btn');
+        if (clearCartBtn) {
+            clearCartBtn.addEventListener('click', () => {
+                const cartId = document.getElementById('cartList').getAttribute('data-cart-id');
+                if (cartId) {
+                    socket.emit('clear-cart', cartId);
+                } else {
+                    console.error('No se encontró el ID del carrito');
+                }
+            });
+        }
 
-        socket.emit('new-product', { id: productId, title, price, description, stock, category })
-        Swal.fire('Producto agregado', '', 'success')
+        // Evento para manejar la cantidad de productos en la lista
+        const addQuantityControlEvents = () => {
+            document.querySelectorAll('.increase-quantity').forEach(button => {
+                button.addEventListener('click', () => {
+                    const input = document.querySelector(`.product-quantity[data-id="${button.getAttribute('data-id')}"]`);
+                    if (input) input.value = parseInt(input.value) + 1;
+                });
+            });
 
-        // Limpiar el formulario
-        document.getElementById('product-form').reset();
-    })
+            document.querySelectorAll('.decrease-quantity').forEach(button => {
+                button.addEventListener('click', () => {
+                    const input = document.querySelector(`.product-quantity[data-id="${button.getAttribute('data-id')}"]`);
+                    if (input && input.value > 1) input.value = parseInt(input.value) - 1;
+                });
+            });
+        };
 
-    // Mostrar alerta de eliminación exitosa
-    socket.on('delete-success', () => {
-        Swal.fire('Producto eliminado', '', 'success')
-    })
+        document.getElementById('productList').addEventListener('click', (e) => {
+            if (e.target.classList.contains('add-to-cart-btn')) {
+                const productId = e.target.getAttribute('data-id');
+                const cartId = document.getElementById('cartList').getAttribute('data-cart-id');
+                const quantity = parseInt(document.querySelector(`.product-quantity[data-id="${productId}"]`).value) || 1;
+
+                socket.emit('add-to-cart', { cartId, productId, quantity });
+            } else if (e.target.classList.contains('delete-btn')) {
+                const productId = e.target.getAttribute('data-id');
+                socket.emit('delete-product', productId);
+            }
+        });
+
+        document.getElementById('cartList').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-from-cart-btn')) {
+                const productId = e.target.getAttribute('data-id');
+                const cartId = document.getElementById('cartList').getAttribute('data-cart-id');
+                socket.emit('remove-from-cart', { cartId, productId });
+            }
+        });
+
+        socket.on('update-products', (products) => {
+            const productList = document.getElementById('productList');
+            productList.innerHTML = '';
+            products.forEach(product => {
+                productList.innerHTML += `
+                    <li data-id="${product._id}">
+                        ${product.title} - ${product.price} - ${product.description} - ${product.stock} - ${product.category}
+                        <div class="quantity-control">
+                            <button class="decrease-quantity" data-id="${product._id}">-</button>
+                            <input type="number" min="1" value="1" class="product-quantity" data-id="${product._id}">
+                            <button class="increase-quantity" data-id="${product._id}">+</button>
+                        </div>
+                        <button class="delete-btn" data-id="${product._id}">Eliminar</button>
+                        <button class="add-to-cart-btn" data-id="${product._id}">Agregar al Carrito</button>
+                    </li>
+                `;
+            });
+            addQuantityControlEvents();
+        });
+
+
+
+        //Se agrega un producto al carrito
+        socket.on('update-cart', (cart) => {
+            const cartList = document.getElementById('cartList');
+            if (cartList) {
+                cartList.innerHTML = ''; // Vaciar el contenido anterior
+
+                if (cart.products.length === 0) {
+                    cartList.innerHTML = '<li>El carrito está vacío.</li>';
+                } else {
+                    cart.products.forEach(product => {
+                        // Verifica que product y product.product estén definidos
+                        if (product && product.product) {
+                            const li = document.createElement('li');
+                            li.innerHTML = `
+                        <h3>${product.product.title} (x${product.quantity})</h3>
+                        <button class="remove-from-cart-btn" data-id="${product.product._id}">Eliminar</button>
+                    `;
+                            cartList.appendChild(li);
+                        } else {
+                            console.error('Producto o título no definidos', product);
+                        }
+                    });
+                }
+                Swal.fire('Producto agregado al carrito', '', 'success');
+            }
+        });
+
+
+        socket.on('new-product-success', () => {
+            Swal.fire({
+                title: 'Producto añadido',
+                icon: 'success',
+                confirmButtonText: 'Aceptar'
+            });
+        });
+
+        socket.on('delete-success', () => {
+            Swal.fire({
+                title: 'Producto eliminado',
+                icon: 'success',
+                confirmButtonText: 'Aceptar'
+            });
+        });
+    });
+
+    // Agregar eventos de añadir al carrito a los nuevos botones
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.getAttribute('data-id');
+            const cartList = document.getElementById('cartList');
+            const cartId = cartList ? cartList.getAttribute('data-cart-id') : null;
+            if (!cartId) {
+                Swal.fire('Primero debes crear un carrito', '', 'error');
+                return;
+            }
+            console.log(`Agregar producto con ID: ${productId} al carrito con ID: ${cartId}`);
+            socket.emit('add-to-cart', { cartId, productId, quantity: 1 });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const cartList = document.getElementById('cartList');
+        const cartId = cartList.getAttribute('data-cart-id');
+
+        cartList.addEventListener('click', function (event) {
+            if (event.target.classList.contains('remove-from-cart-btn')) {
+                const productId = event.target.getAttribute('data-id');
+
+                // Emitir el evento para eliminar el producto del carrito
+                socket.emit('remove-from-cart', { cartId, productId });
+            }
+        });
+
+        // Escuchar la confirmación de eliminación del producto del carrito
+        socket.on('product-removed-from-cart', function (updatedCart) {
+            if (updatedCart._id === cartId) {
+                // Actualizar la lista de productos en el carrito
+                const cartList = document.getElementById('cartList');
+                cartList.innerHTML = '';
+
+                if (updatedCart.products.length > 0) {
+                    updatedCart.products.forEach(item => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <h3>${item.product.title} (x${item.quantity})</h3>
+                            <button class="remove-from-cart-btn" data-id="${item.product._id}">Eliminar</button>
+                        `;
+                        cartList.appendChild(li);
+                    });
+                } else {
+                    cartList.innerHTML = '<li>El carrito está vacío.</li>';
+                }
+
+                // Mostrar SweetAlert para confirmar la eliminación del producto
+                Swal.fire('Producto eliminado del carrito', '', 'success');
+            }
+        });
+    });
+
 
 </script>
